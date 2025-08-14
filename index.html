@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Universal Unit Converter</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#94a3b8; --glass: rgba(255,255,255,0.03);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,var(--bg),#071027);color:#e6eef6;display:flex;align-items:center;justify-content:center;padding:28px}
+    .container{width:100%;max-width:980px}
+    header{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700;color:#021024;font-size:20px;box-shadow:0 6px 20px rgba(6,182,212,0.12)}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6);}
+    .top-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .select, .input, .small-btn{background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:10px 12px;border-radius:10px;color:inherit}
+    select.select{min-width:170px}
+    .row{display:flex;gap:10px;align-items:center}
+    .col{flex:1}
+
+    .big-input{width:100%;padding:14px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;font-size:18px}
+    .actions{display:flex;gap:8px;align-items:center}
+    button.btn{background:linear-gradient(90deg,var(--accent),#7c3aed);border:none;color:#021024;padding:10px 12px;border-radius:10px;font-weight:600;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);cursor:pointer}
+
+    .result{margin-top:12px;padding:14px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);font-size:18px}
+    .meta{margin-top:10px;color:var(--muted);font-size:13px}
+
+    footer{margin-top:12px;color:var(--muted);font-size:12px;text-align:center}
+    .about{margin-top:20px;padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.05);font-size:14px;color:var(--muted)}
+
+    @media (max-width:640px){header{gap:10px}.logo{width:54px;height:54px}.top-row{flex-direction:column}.row{flex-direction:column}.actions{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">UC</div>
+      <div>
+        <h1>Universal Unit Converter</h1>
+        <p class="lead">Convert length, mass, temperature, volume, area & speed — works offline. Save as <code>unit-converter.html</code> and open in browser.</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="top-row">
+        <select id="category" class="select">
+          <option value="length">Length</option>
+          <option value="mass">Mass / Weight</option>
+          <option value="temperature">Temperature</option>
+          <option value="volume">Volume</option>
+          <option value="area">Area</option>
+          <option value="speed">Speed</option>
+        </select>
+
+        <div style="flex:1;display:flex;gap:8px">
+          <input id="inputValue" class="big-input" inputmode="decimal" placeholder="Enter value to convert" />
+        </div>
+
+        <div class="actions">
+          <button id="convertBtn" class="btn">Convert</button>
+          <button id="swapBtn" class="ghost small-btn">Swap</button>
+          <button id="clearBtn" class="ghost small-btn">Clear</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label style="font-size:13px;color:var(--muted)">From</label>
+          <select id="fromUnit" class="select" style="width:100%"></select>
+        </div>
+
+        <div class="col">
+          <label style="font-size:13px;color:var(--muted)">To</label>
+          <select id="toUnit" class="select" style="width:100%"></select>
+        </div>
+      </div>
+
+      <div id="result" class="result">Result will appear here after conversion.</div>
+      <div id="meta" class="meta">Tip: press Enter to convert. Use Swap to flip units.</div>
+    </div>
+
+    <div class="about">
+      <strong>About:</strong> Created by SOUMAJIT CHAKRABORTY — Passionate about tech & innovation.
+    </div>
+
+    <footer>Made with ❤ — Offline, single HTML file. You can copy & paste, modify units as needed.</footer>
+  </div>
+
+  <script>
+    const UNITS = {
+      length: { base: 'm', units: { m: 1, km: 1000, cm: 0.01, mm: 0.001, in: 0.0254, ft: 0.3048, yd: 0.9144, mile: 1609.344 }},
+      mass: { base: 'kg', units: { kg: 1, g: 0.001, mg: 0.000001, lb: 0.45359237, oz: 0.028349523125 }},
+      temperature: { base: 'c', units: { c: 'c', f: 'f', k: 'k' }},
+      volume: { base: 'l', units: { l: 1, ml: 0.001, m3: 1000, gal: 3.785411784, pint: 0.473176473 }},
+      area: { base: 'm2', units: { 'm2': 1, 'km2': 1e6, 'cm2': 0.0001, acre: 4046.8564224, hectare: 10000 }},
+      speed: { base: 'm/s', units: { 'm/s':1, 'km/h': 1/3.6, 'mph': 0.44704 }}
+    };
+
+    const categoryEl = document.getElementById('category');
+    const fromEl = document.getElementById('fromUnit');
+    const toEl = document.getElementById('toUnit');
+    const inputEl = document.getElementById('inputValue');
+    const resultEl = document.getElementById('result');
+    const convertBtn = document.getElementById('convertBtn');
+    const swapBtn = document.getElementById('swapBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function populateUnits(cat){
+      const definition = UNITS[cat];
+      fromEl.innerHTML = '';
+      toEl.innerHTML = '';
+      Object.keys(definition.units).forEach(u => {
+        const opt1 = document.createElement('option'); opt1.value = u; opt1.textContent = prettify(u);
+        const opt2 = opt1.cloneNode(true);
+        fromEl.appendChild(opt1);
+        toEl.appendChild(opt2);
+      });
+      fromEl.value = Object.keys(definition.units)[0];
+      toEl.value = Object.keys(definition.units)[1] || Object.keys(definition.units)[0];
+    }
+
+    function prettify(code){
+      const map = { m:'Meter (m)', km:'Kilometer (km)', cm:'Centimeter (cm)', mm:'Millimeter (mm)', in:'Inch (in)', ft:'Foot (ft)', yd:'Yard (yd)', mile:'Mile (mi)',
+                    kg:'Kilogram (kg)', g:'Gram (g)', mg:'Milligram (mg)', lb:'Pound (lb)', oz:'Ounce (oz)',
+                    c:'Celsius (°C)', f:'Fahrenheit (°F)', k:'Kelvin (K)',
+                    l:'Liter (L)', ml:'Milliliter (mL)', m3:'Cubic meter (m³)', gal:'Gallon (US gal)', pint:'Pint (US pt)',
+                    'm2':'Square meter (m²)','km2':'Square kilometer (km²)','cm2':'Square centimeter (cm²)','acre':'Acre','hectare':'Hectare',
+                    'm/s':'Meter per second (m/s)','km/h':'Kilometer per hour (km/h)','mph':'Mile per hour (mph)'};
+      return map[code] || code;
+    }
+
+    function convert(){
+      const cat = categoryEl.value;
+      const from = fromEl.value;
+      const to = toEl.value;
+      let val = inputEl.value.trim();
+      if(val === '' || isNaN(Number(val))){ resultEl.textContent = 'Please enter a valid numeric value.'; return; }
+      val = Number(val);
+
+      if(cat === 'temperature'){
+        const r = convertTemperature(val, from, to);
+        resultEl.textContent = `${val} ${prettify(from)} = ${round(r)} ${prettify(to)}`;
+        return;
+      }
+
+      const def = UNITS[cat];
+      const units = def.units;
+      const baseFrom = units[from];
+      const baseTo = units[to];
+      if(baseFrom == null || baseTo == null){ resultEl.textContent = 'Unit not supported'; return; }
+      const valueInBase = val * baseFrom;
+      const res = valueInBase / baseTo;
+      resultEl.textContent = `${val} ${prettify(from)} = ${round(res)} ${prettify(to)}`;
+    }
+
+    function convertTemperature(val, from, to){
+      let c;
+      if(from === 'c') c = val;
+      else if(from === 'f') c = (val - 32) * 5/9;
+      else if(from === 'k') c = val - 273.15;
+      if(to === 'c') return c;
+      if(to === 'f') return (c * 9/5) + 32;
+      if(to === 'k') return c + 273.15;
+    }
+
+    function round(x){
+      if(!isFinite(x)) return x;
+      if(Math.abs(x) >= 1){ return Number.parseFloat(x.toFixed(8)).toString(); }
+      else { return Number.parseFloat(x.toFixed(10)).toString(); }
+    }
+
+    swapBtn.addEventListener('click', ()=>{
+      const a = fromEl.value; fromEl.value = toEl.value; toEl.value = a;
+      convert();
+    });
+
+    clearBtn.addEventListener('click', ()=>{ inputEl.value = ''; resultEl.textContent = 'Result will appear here after conversion.'; inputEl.focus(); });
+
+    convertBtn.addEventListener('click', convert);
+    inputEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') convert(); });
+
+    categoryEl.addEventListener('change', ()=>{ populateUnits(categoryEl.value); resultEl.textContent = 'Result will appear here after conversion.'; });
+
+    populateUnits(categoryEl.value);
+    inputEl.addEventListener('input', ()=>{ inputEl.value = inputEl.value.replace(/,/g, ''); });
+    window.addEventListener('load', ()=>{ inputEl.focus(); });
+
+  </script>
+</body>
+</html>
